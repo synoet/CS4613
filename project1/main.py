@@ -1,6 +1,5 @@
-import utils
 import copy
-import sys
+from utils import parse_file, parse_args, print_states_on_path, get_path_data, print_summary
 
 class Node:
     def __init__(self, board, parent, action, weight):
@@ -13,6 +12,10 @@ class Node:
         self.weight = weight if weight else 1.0
 
     def __repr__(self):
+        """
+        Draws information about the node, aswell as the board
+        Only used in Debug Mode
+        """
         node_info = 'Node: \n \n'
         node_info += 'f(n): {0}'.format(self.path_cost + self.board.h) + '\n'
         node_info += 'g(n): {0}'.format(self.path_cost) + '\n'
@@ -23,21 +26,40 @@ class Node:
         return node_info
 
     def value(self):
+        """
+        Return f(n) with a weight applied to heuristic
+        """
         return self.path_cost + (self.weight * self.board.h)
 
     def __lt__(self, other):
+        """
+        For comparison of values between nodes
+        """
         return self.value() < other.value()
 
     def __eq__(self, other):
+        """
+        Boards are equal if their states are equal
+        """
         return self.board.state == other.board.state
 
     def h(self):
+        """
+        Return heuristic of the board
+        """
         return self.board.h
 
     def visit(self):
+        """
+        Mark node as visited
+        """
         self.visited = True
 
     def expand(self):
+        """
+        Returns an object containing a board state, 
+        aswell as the action needed to get to that state from the parent
+        """
         moves = self.board.get_moves()
         for move in moves:
             self.children.append(Node(move["board"], self, move["action"], self.weight))
@@ -50,6 +72,10 @@ class Board:
         self.h = self.sum_m_d()
 
     def __repr__(self):
+        """
+        Draws a board with the tiles in the correct positions
+        Only used for visual representations in debug mode
+        """
         row_divider = '- - - - - - - - - \n'
         rep = row_divider
         for row in self.state:
@@ -60,24 +86,40 @@ class Board:
         return rep
 
     def __eq__(self, other):
+        """
+        Two boards are equal if their states are equal
+        """
         return self.state == other.state
 
     def is_goal(self):
+        """
+        A board is the goal if it has the goal_state
+        """
         return self.state == self.goal_state
 
     def get_goal_pos(self, value):
+        """
+        Get the distance in rows and columns of a value from its goal state
+        """
         for r in range(len(self.goal_state)):
             for c in range(len(self.goal_state[r])):
                 if self.goal_state[r][c] == value:
                     return [r, c]
 
     def get_pos(self, value):
+        """
+        Return the position of any value of the board
+        """
         for r in range(len(self.state)):
             for c in range(len(self.state[0])):
                 if self.state[r][c] == value:
                     return [r, c]
 
     def sum_m_d(self):
+        """
+        Sum of Manhattan Distances
+        returns the sum of the distance of every tile from its goal position
+        """
         sum_value = 0
         for r in range(len(self.state)):
             for c in range(len(self.state[0])):
@@ -87,40 +129,68 @@ class Board:
         return sum_value
 
     def get_moves(self):
+        """
+        Returns an object with a possible action and its corresponding state
+        This function is invoked by the Node class to expand a node
+        """
         moves = []
         # get the position of the empty tile
         empty_r, empty_c = self.get_pos('0')
 
         # calculate states for available adjacent positions
 
+        # Make sure that the current row is not the first row
         if empty_r > 0:
+            # Copy the original state to create a new state
             new_state = copy.deepcopy(self.state)
+            # Replace the position of the empty tile with the one below it
             new_state[empty_r][empty_c], new_state[empty_r - 1][empty_c] = new_state[empty_r - 1][empty_c], '0'
+            # Create a new Board with the new state
             board_move_down = Board(new_state, self.goal_state)
+            # Append the object with the action and state to the list
             moves.append({"action": "U", "board": board_move_down})
 
+        # Make sure the current column is not the first column
         if empty_c > 0:
+            # Copy the original state to create a new state
             new_state = copy.deepcopy(self.state)
+            # Replace the position of the empty tile with the one to the left
             new_state[empty_r][empty_c], new_state[empty_r][empty_c - 1] = new_state[empty_r][empty_c - 1], '0'
+            # Create a new Board with the new state
             board_move_right = Board(new_state, self.goal_state)
+            # APpend the object with the action and state to the list
             moves.append({"action": "L", "board": board_move_right})
 
+        # Make cure the current column is not the last column
         if empty_c < len(self.state[0]) - 1:
+            # Copy the original state to create a new state
             new_state = copy.deepcopy(self.state)
+            # Replace the position of the empty tile with the one to the right
             new_state[empty_r][empty_c], new_state[empty_r][empty_c + 1] = new_state[empty_r][empty_c + 1 ], '0'
+            # Create a new Board with the new state
             board_move_left = Board(new_state, self.goal_state)
+            # Append the object with the action and state to the list
             moves.append({"action": "R", "board": board_move_left})
 
+        # Make sure the current row is now the last row
         if empty_r < len(self.state) - 1:
+            # Copy the original state to create a new state
             new_state = copy.deepcopy(self.state)
+            # Replace the position of the empty tile with the one above
             new_state[empty_r][empty_c], new_state[empty_r + 1][empty_c] = new_state[empty_r + 1][empty_c], '0'
+            # Create a new board with the new state
             board_move_up = Board(new_state, self.goal_state)
+            # Append the object with the action and state to the list
             moves.append({"action": "D", "board": board_move_up})
 
         return moves
 
 
 def path_to_start(node, start_node):
+    """
+    Find the path from a goal node back to the start
+    Reverse the list at the end to get the right direction
+    """
     path = []
     while node != start_node:
         path.append(node)
@@ -129,47 +199,21 @@ def path_to_start(node, start_node):
     return path[::-1]
 
 def is_visited(visited, node):
+    """
+    Return true if a node has already been visited
+    Else return false
+    """
     for visited_node in visited:
         if visited_node == node:
             return True
     return False
 
-def print_states_on_path(path):
-    counter = 1
-    for node in path:
-        print(f"({counter})")
-        print(f"fn(n) = {node.value()}")
-        print(node.board)
-        counter += 1
-
-
-def get_path_data(path, n, weight):
-    return [len(path), n , [node.action for node in path], [node.value() for node in path], weight]
-
-def print_summary(initial_state, goal_state, path, n, weight):
-    output = ""
-    for idx in range(len(initial_state)):
-        for jdx in range(len(initial_state[0])):
-            output += f"{initial_state[idx][jdx]} "
-        output += "\n"
-    output += "\n"
-    for idx in range(len(goal_state)):
-        for jdx in range(len(goal_state[0])):
-            output += f"{goal_state[idx][jdx]} "
-        output += "\n"
-    output += "\n"
-    d, n, a_list, f_list, w = get_path_data(path, n, weight)
-    output += f"{w} \n{d} \n{n}\n"
-    for a in a_list:
-        output += f"{a} "
-    output += "\n"
-    for f in f_list:
-        output += f"{f} "
-    
-    print(output)
-
 
 def search(initial_state, goal_state, weight):
+    """
+    Run A star on a given initial state and goal state
+    Return path from the start node to goal node, aswell as the number of nodes generated
+    """
     # Initialize initial board state
     initial_board = Board(initial_state, goal_state)
 
@@ -221,29 +265,18 @@ def search(initial_state, goal_state, weight):
     # Return None if noo path was found
     return None
 
-def parse_args():
-    file_path = './inputs/input1.txt'
-    weight = 1.0
-    debug = False
-
-    for idx in range(len(sys.argv)):
-        if sys.argv[idx] == "-f":
-            file_path = f"{sys.argv[idx + 1]}"
-            idx += 1
-        elif sys.argv[idx] == "-w":
-            weight = float(sys.argv[idx + 1])
-            idx += 1
-        elif sys.argv[idx] == "--debug":
-            debug = True
-    return [file_path, weight, debug]
-
 if __name__ == '__main__':
+    # Get configuration for running
     file_path, weight, debug_mode = parse_args()
 
-    states = utils.parse_file(file_path)
+    # parse initial_state and goal_state from file
+    states = parse_file(file_path)
 
+    # Run search and grab output
     initial_state, goal_state, path, n = search(states[0], states[1], weight)
 
+    # If debug mode is turned out print boards
+    # Else we write to file in the provided format
     if debug_mode:
         print_states_on_path(path)
     else:
