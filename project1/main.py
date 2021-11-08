@@ -1,14 +1,13 @@
 import utils
 import copy
 
-
 class Node:
     def __init__(self, board, parent):
         self.board = board
         self.parent = parent
         self.path_cost = parent.path_cost + 1 if parent is not None else 0
         self.children = []
-        self.visited = False
+        self.visited= False
 
     def __repr__(self):
         node_info = 'Node: \n \n'
@@ -22,6 +21,9 @@ class Node:
 
     def value(self):
         return self.path_cost + self.board.h
+
+    def __lt__(self, other):
+        return self.value() < other.value()
 
     def __eq__(self, other):
         return self.board.state == other.board.state
@@ -68,7 +70,7 @@ class Board:
 
     def get_pos(self, value):
         for r in range(len(self.state)):
-            for c in range(len(self.state)):
+            for c in range(len(self.state[0])):
                 if self.state[r][c] == value:
                     return [r, c]
 
@@ -100,13 +102,13 @@ class Board:
             board_move_right = Board(new_state, self.goal_state)
             moves.append(board_move_right)
 
-        if empty_r < len(self.state):
+        if empty_c < len(self.state[0]) - 1:
             new_state = copy.deepcopy(self.state)
             new_state[empty_r][empty_c], new_state[empty_r][empty_c + 1] = new_state[empty_r][empty_c + 1 ], '_'
             board_move_left = Board(new_state, self.goal_state)
             moves.append(board_move_left)
 
-        if empty_c < len(self.state[0]):
+        if empty_r < len(self.state) - 1:
             new_state = copy.deepcopy(self.state)
             new_state[empty_r][empty_c], new_state[empty_r + 1][empty_c] = new_state[empty_r + 1][empty_c], '_'
             board_move_up = Board(new_state, self.goal_state)
@@ -115,13 +117,59 @@ class Board:
         return moves
 
 
+def path_to_start(node, start_node):
+    path = []
+    while node != start_node:
+        path.append(node)
+        node = node.parent
+
+    return path[::-1]
+
+def is_visited(visited, node):
+    for visited_node in visited:
+        if visited_node == node:
+            return True
+    return False
+
+def pretty_print(path):
+    counter = 1
+    for node in path:
+        print(f"({counter})")
+        print(f"fn(n) = {node.value()}")
+        print(node.board)
+        counter += 1
+
+
+def search(initial_state, goal_state):
+    initial_board = Board(initial_state, goal_state)
+
+    initial_node = Node(initial_board, None)
+
+    open = []
+    visited = []
+
+    open.append(initial_node)
+
+    while len(open) > 0:
+
+        open.sort()
+
+        node = open.pop(0)
+
+        node.visit()
+        visited.append(node)
+
+        if node.board.is_goal():
+           return path_to_start(node, initial_node)
+
+        node.expand()
+
+        for child in node.children:
+            if not is_visited(visited, child):
+                open.append(child)
+
+
 if __name__ == '__main__':
     states = utils.parse_file('test.txt')
-    board = Board(states[0], states[1])
-    node = Node(board, None)
-    node.expand()
-    node.children[0].expand()
-    for child in node.children[0].children:
-        print(child)
-
+    pretty_print(search(states[0], states[1]))
 
