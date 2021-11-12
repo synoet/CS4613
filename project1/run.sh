@@ -24,7 +24,7 @@ echo "PROGRESS  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 for file in $files
 do
   echo "Running A* on $file"
-  python main.py -f $file -w 1.0 > $BEG$COUNTER$A$END
+  python main.py -f $file -w 1.0> $BEG$COUNTER$A$END
   echo "  -> Ran sucessfully with weight 1.0 and wrote output to $BEG$COUNTER$A$END"
   python main.py -f $file -w 1.2 > $BEG$COUNTER$B$END
   echo "  -> Ran sucessfully with weight 1.2 and wrote output to $BEG$COUNTER$B$END"
